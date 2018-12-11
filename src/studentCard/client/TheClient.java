@@ -226,9 +226,15 @@ public class TheClient {
 			}
 			System.out.println("filnameLength "+filenameLength);
 			inputstream.close();
+			//Boucle sur la comande envoi 2 par 2 des octets jusqu'au dernier
+			//=>compteur sur le nombre d'apdu envoyé tant qu'il reste au moins 2 octet
+			//Envoi de la taille du nom de fichier
+			//Envoi du code ascii des caractères du nom de fichier
 			byte[] cmd_5 = {CLA, WRITEFILETOCARD, P1, P2, (byte)filenameLength};
 			CommandAPDU cmd = new CommandAPDU( cmd_5 );
 			this.sendAPDU( cmd, DISPLAY );
+			//Dernier send apdu 1 octet
+
 
 		}catch(FileNotFoundException e){
 			System.out.println(e.getMessage());
