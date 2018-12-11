@@ -118,6 +118,7 @@ public class TheApplet extends Applet {
 		apdu.setIncomingAndReceive();
 		byte[] buffer = apdu.getBuffer();
 		Util.arrayCopy(buffer,(short)4,tableFile,(short)0,(short)(buffer[4]+1));
+		//OFFSET : buffer[0]+3 +n*datamaxsize
 	}
 
 

@@ -208,7 +208,7 @@ public class TheClient {
 			FileInputStream inputstream=null;
 
 			File file=null;
-			byte[] filecontent=null;
+			byte[] filecontent=new byte[2];
 			long fileLength=0;
 
 			file = new File(filename);
@@ -218,8 +218,8 @@ public class TheClient {
 			filecontent = new byte[(int)fileLength];
 			int data = inputstream.read(filecontent);
 
-			while(data != -1){
-				data = inputstream.read(filecontent);
+			while(inputstream.read(filecontent)>0){
+				//envoi des donées
 			}
 			for (int i=0;i<(int)fileLength; i++) {
 					System.out.println("test "+filecontent[i]);
@@ -234,7 +234,6 @@ public class TheClient {
 			CommandAPDU cmd = new CommandAPDU( cmd_5 );
 			this.sendAPDU( cmd, DISPLAY );
 			//Dernier send apdu 1 octet
-
 
 		}catch(FileNotFoundException e){
 			System.out.println(e.getMessage());
