@@ -257,7 +257,7 @@ public class TheClient {
 			byte [] filenam =filename.getBytes();
 			int filenameLength= filename.length();
 
-			FileInputStream inputstream=null;
+
 
 			File file=null;
 			long fileLength=0;
@@ -278,47 +278,47 @@ public class TheClient {
 			this.sendAPDU( cmd, DISPLAY );
 
 
-			inputstream = new FileInputStream(file);
-			byte[] filecontent=new byte[DATAMAXSIZE];
+			FileInputStream inputstream = new FileInputStream(filename);
+			byte[] filecontent=new byte[(int)DATAMAXSIZE];
 			int compteur=0;
-			int data;
-			while(data=inputstream.read(filecontent)>0&&(int)(fileLength/DATAMAXSIZE)>compteur){
+			int data = 0;
+			while((data=inputstream.read(filecontent)) > 0 ){//&& (int)(fileLength/DATAMAXSIZE)>compteur
 				System.out.println("nb of read :"+data);
 				byte[] cmd_part2 = {CLA, WRITEFILETOCARD, (byte)1, (byte)compteur, DATAMAXSIZE};
 				int sizecmd_part = cmd_part2.length;
-				totalLength =5+(int)DATAMAXSIZE;
+				totalLength =sizecmd_part+(int)DATAMAXSIZE;
 				byte[] cmd_5= new byte[totalLength];
 				System.arraycopy(cmd_part2, 0, cmd_5, 0, sizecmd_part);
-				System.arraycopy(filecontent, 0, cmd_5, sizecmd_part, (int)DATAMAXSIZE);
+				System.arraycopy(filecontent, 0, cmd_5, sizecmd_part, (byte)filecontent.length);
 				CommandAPDU cmd1 = new CommandAPDU( cmd_5 );
 				this.sendAPDU( cmd1, DISPLAY );
 				compteur++;
 
 			}
-			byte left =(byte)(fileLength%(long)DATAMAXSIZE);
-			byte [] contentLeft = new byte[(int)left];
-			byte[] cmd_part = {CLA, WRITEFILETOCARD, (byte)2, (byte)compteur, left};
-			int sizecmd_part = cmd_part.length;
-			if (left==0) {
-					totalLength =6;
-			}
-			else{
-					totalLength =5+(int)left;
-			}
-
-			byte[] cmd_4= new byte[totalLength];
-			System.out.println("Left :"+(int)left);
-
-			System.arraycopy(cmd_part, 0, cmd_4, 0, sizecmd_part1);
-			if (left==0) {
-				filecontent[0]=0;
-				System.arraycopy(filecontent, 0, cmd_4, sizecmd_part1, (byte)1);
-			}
-			else{
-					System.arraycopy(filecontent, 0, cmd_4, sizecmd_part1, (byte)left);
-			}
-			CommandAPDU cmd3 = new CommandAPDU( cmd_4 );
-			this.sendAPDU( cmd3, DISPLAY );
+			// byte left =(byte)(fileLength%(long)DATAMAXSIZE);
+			// byte [] contentLeft = new byte[(int)left];
+			// byte[] cmd_part = {CLA, WRITEFILETOCARD, (byte)2, (byte)compteur, left};
+			// int sizecmd_part = cmd_part.length;
+			// if (left==0) {
+			// 		totalLength =6;
+			// }
+			// else{
+			// 		totalLength =5+(int)left;
+			// }
+			//
+			// byte[] cmd_4= new byte[totalLength];
+			// System.out.println("Left :"+(int)left);
+			//
+			// System.arraycopy(cmd_part, 0, cmd_4, 0, sizecmd_part1);
+			// if (left==0) {
+			// 	filecontent[0]=0;
+			// 	System.arraycopy(filecontent, 0, cmd_4, sizecmd_part1, (byte)1);
+			// }
+			// else{
+			// 		System.arraycopy(filecontent, 0, cmd_4, sizecmd_part1, (byte)left);
+			// }
+			// CommandAPDU cmd3 = new CommandAPDU( cmd_4 );
+			// this.sendAPDU( cmd3, DISPLAY );
 			inputstream.close();
 			//Boucle sur la comande envoi 2 par 2 des octets jusqu'au dernier
 			//=>compteur sur le nombre d'apdu envoyé tant qu'il reste au moins 2 octet

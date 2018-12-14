@@ -13,7 +13,7 @@ import opencard.opt.util.*;
 public class TheClient {
 
 
-	
+
     private final static byte CLA_TEST				= (byte)0x90;
     private final static byte INS_TESTDES_ECB_NOPAD_ENC       	= (byte)0x28;
     private final static byte INS_TESTDES_ECB_NOPAD_DEC       	= (byte)0x29;
@@ -21,10 +21,10 @@ public class TheClient {
     private final static byte INS_DES_ECB_NOPAD_DEC           	= (byte)0x21;
     private final static byte P1_EMPTY = (byte)0x00;
     private final static byte P2_EMPTY = (byte)0x00;
-  
+
 
     private PassThruCardService servClient = null;
-   
+
     boolean DISPLAY = true;
 
 
@@ -36,23 +36,24 @@ public class TheClient {
     public TheClient() {
 	    try {
 		    SmartCard.start();
-		    System.out.print( "Smartcard inserted?... " ); 
-		    
-		    CardRequest cr = new CardRequest (CardRequest.ANYCARD,null,null); 
-		    
+		    System.out.print( "Smartcard inserted?... " );
+
+		    CardRequest cr = new CardRequest (CardRequest.ANYCARD,null,null);
+
 		    SmartCard sm = SmartCard.waitForCard (cr);
-		   
+
 		    if (sm != null) {
 			    System.out.println ("got a SmartCard object!\n");
 		    } else
 			    System.out.println( "did not get a SmartCard object!\n" );
-		   
-		    this.initNewCard( sm ); 
-		    
+
+		    this.initNewCard( sm );
+
 		    SmartCard.shutdown();
-	   
+
 	    } catch( Exception e ) {
 		    System.out.println( "TheClient error: " + e.getMessage() );
+				e.printStackTrace();
 	    }
 	    java.lang.System.exit(0) ;
     }
@@ -111,7 +112,7 @@ public class TheClient {
 	 try {
 	    CommandAPDU cmd = new CommandAPDU( new byte[] {
                 (byte)0x00, (byte)0xA4, (byte)0x04, (byte)0x00, (byte)0x0A,
-		(byte)0xA0, (byte)0x00, (byte)0x00, (byte)0x00, (byte)0x62, 
+		(byte)0xA0, (byte)0x00, (byte)0x00, (byte)0x00, (byte)0x62,
 		(byte)0x03, (byte)0x01, (byte)0x0C, (byte)0x06, (byte)0x01
             } );
             ResponseAPDU resp = this.sendAPDU( cmd );
@@ -147,14 +148,14 @@ public class TheClient {
 		System.out.println( "Wrong card, no applet to select!\n" );
 		System.exit( 1 );
 		return;
-	} else 
+	} else
 		System.out.println( "Applet selected\n" );
-       
+
 	foo();
     }
 
 
-    private void testDES_ECB_NOPAD( boolean displayAPDUs ) { 
+    private void testDES_ECB_NOPAD( boolean displayAPDUs ) {
 	    testCryptoGeneric(INS_TESTDES_ECB_NOPAD_ENC);
 	    testCryptoGeneric(INS_TESTDES_ECB_NOPAD_DEC);
     }
@@ -169,31 +170,52 @@ public class TheClient {
 	    t[3] = P2_EMPTY;
 
             this.sendAPDU(new CommandAPDU( t ));
-    } 
-    
-    
+    }
+
+
     private byte[] cipherDES_ECB_NOPAD( byte[] challenge, boolean display ) {
 	    return cipherGeneric( INS_DES_ECB_NOPAD_ENC, challenge );
-    } 
-    
-    
+    }
+
+
     private byte[] uncipherDES_ECB_NOPAD( byte[] challenge, boolean display ) {
 	    return cipherGeneric( INS_DES_ECB_NOPAD_DEC, challenge );
-    } 
+    }
 
 
     private byte[] cipherGeneric( byte typeINS, byte[] challenge ) {
-	    byte[] result = new byte[challenge.length];
+
+		  byte[] result = new byte[challenge.length];
+
+			byte[] cmd_part = {CLA_TEST, typeINS, P1_EMPTY, P2_EMPTY, (byte)challenge.length};
+
+			int size_part = cmd_part.length;
+			int totalLength =challenge.length+size_part;
+			byte[] cmd_= new byte[totalLength+1];
+
+			System.arraycopy(cmd_part, 0, cmd_, 0, size_part);
+			System.arraycopy(challenge, 0, cmd_, size_part, challenge.length);
+			cmd_ [totalLength]=(byte)challenge.length;
+			
+			CommandAPDU cmd1 = new CommandAPDU( cmd_ );
+			ResponseAPDU resp =	this.sendAPDU( cmd1, DISPLAY );
+
+			byte[] result1 =resp.getBytes();
+			System.arraycopy(result1, 0, result, 0, challenge.length);
+
 	    // TO COMPLETE
+			//forger un apdu de command avec INS set 1er parametre
+			//champ data set au 2eme parametre
+			//LC=LE
 	    return result;
     }
-    
-    
+
+
     private void foo() {
 	    sun.misc.BASE64Encoder encoder = new sun.misc.BASE64Encoder();
 	    byte[] response;
-	    byte[] unciphered; 
-	    long d1, d2, seed=0;
+	    byte[] unciphered;
+	    long seed=0;
 	    java.util.Random r = new java.util.Random( seed );
 
 	    byte[] challengeDES = new byte[16]; 		// size%8==0, coz DES key 64bits
@@ -203,7 +225,7 @@ public class TheClient {
 	    System.out.println( "**TESTING**");
 	    testDES_ECB_NOPAD( true );
 	    System.out.println( "**TESTING**");
-	   
+
 	    System.out.println("\nchallenge:\n" + encoder.encode(challengeDES) + "\n");
 	    response = cipherGeneric(INS_DES_ECB_NOPAD_ENC, challengeDES);
 	    System.out.println("\nciphered is:\n" + encoder.encode(response) + "\n");

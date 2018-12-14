@@ -23,19 +23,19 @@ public class TheApplet extends Applet {
     private final static byte INS_TESTDES_ECB_NOPAD_DEC       	= (byte)0x29;
 
 
-	static final byte[] theDESKey = 
+	static final byte[] theDESKey =
 		new byte[] { (byte)0xCA, (byte)0xCA, (byte)0xCA, (byte)0xCA, (byte)0xCA, (byte)0xCA, (byte)0xCA, (byte)0xCA };
 
 
 
     // cipher instances
-    private Cipher 
+    private Cipher
 	    cDES_ECB_NOPAD_enc, cDES_ECB_NOPAD_dec;
 
 
     // key objects
-			
-    private Key 
+
+    private Key
 	    secretDESKey, secretDES2Key, secretDES3Key;
 
 
@@ -78,15 +78,15 @@ public class TheApplet extends Applet {
     //VM loop size
     //private final static short VMLOOPSIZE = 30;
     //to test capabilities of the card
-    boolean 
+    boolean
 	    pseudoRandom, secureRandom,
 	    SHA1, MD5, RIPEMD160,
 	    keyDES, DES_ECB_NOPAD, DES_CBC_NOPAD;
 
 
-    protected TheApplet() { 
-	    initKeyDES(); 
-	    initDES_ECB_NOPAD(); 
+    protected TheApplet() {
+	    initKeyDES();
+	    initDES_ECB_NOPAD();
 
 	    this.register();
     }
@@ -105,7 +105,7 @@ public class TheApplet extends Applet {
 
     private void initDES_ECB_NOPAD() {
 	    if( keyDES ) try {
-		    cDES_ECB_NOPAD_enc = Cipher.getInstance(Cipher.ALG_DES_ECB_NOPAD, false);
+		    cDES_ECB_NOPAD_enc = Cipher.getInstance(Cipher.ALG_DES_ECB_NOPAD, false);//enc ->utilise des en mode ecb no pad
 		    cDES_ECB_NOPAD_dec = Cipher.getInstance(Cipher.ALG_DES_ECB_NOPAD, false);
 		    cDES_ECB_NOPAD_enc.init( secretDESKey, Cipher.MODE_ENCRYPT );
 		    cDES_ECB_NOPAD_dec.init( secretDESKey, Cipher.MODE_DECRYPT );
@@ -132,24 +132,29 @@ public class TheApplet extends Applet {
 
         try { switch( buffer[ISO7816.OFFSET_INS] ) {
 
-	case INS_TESTDES_ECB_NOPAD_ENC: if( DES_ECB_NOPAD ) 
+	case INS_TESTDES_ECB_NOPAD_ENC: if( DES_ECB_NOPAD )
 		testCipherGeneric( cDES_ECB_NOPAD_enc, KeyBuilder.LENGTH_DES, NBTESTSDESCIPHER  ); return;
-	case INS_TESTDES_ECB_NOPAD_DEC: if( DES_ECB_NOPAD ) 
+	case INS_TESTDES_ECB_NOPAD_DEC: if( DES_ECB_NOPAD )
 		testCipherGeneric( cDES_ECB_NOPAD_dec, KeyBuilder.LENGTH_DES, NBTESTSDESUNCIPHER   ); return;
 
 	case INS_DES_ECB_NOPAD_ENC: if( DES_ECB_NOPAD )
 		cipherGeneric( apdu, cDES_ECB_NOPAD_enc, KeyBuilder.LENGTH_DES ); return;
-	case INS_DES_ECB_NOPAD_DEC: if( DES_ECB_NOPAD ) 
+	case INS_DES_ECB_NOPAD_DEC: if( DES_ECB_NOPAD )
 		cipherGeneric( apdu, cDES_ECB_NOPAD_dec, KeyBuilder.LENGTH_DES  ); return;
 	    }
 	} catch( Exception e ) {
 	}
     }
 
-
+    //SET INCOMMING AND RECEIVE !!! 		apdu.setIncomingAndReceive();
 	private void cipherGeneric( APDU apdu, Cipher cipher, short keyLength ) {
+    apdu.setIncomingAndReceive();
+		byte[] buffer = apdu.getBuffer();
+    cipher.doFinal( buffer, (short)5, (short)buffer[4], buffer, (short)5 );
+    apdu.setOutgoingAndSend((short)5,(short)buffer[4]);
 		// Write the method ciphering/unciphering data from the computer.
 		// The result is sent back to the computer.
+    //buffer[4] -> LC nbre d'octet a traiter
 	}
 
 
