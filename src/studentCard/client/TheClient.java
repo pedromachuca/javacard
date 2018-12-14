@@ -278,20 +278,32 @@ public class TheClient {
 			this.sendAPDU( cmd, DISPLAY );
 
 
-			FileInputStream inputstream = new FileInputStream(filename);
-			byte[] filecontent=new byte[(int)DATAMAXSIZE];
-			int compteur=0;
+			FileInputStream inputstream = new FileInputStream(file);
+			byte[] filecontent = new byte[2];
+			int compteur = 0;
 			int data = 0;
-			while((data=inputstream.read(filecontent)) > 0 ){//&& (int)(fileLength/DATAMAXSIZE)>compteur
-				System.out.println("nb of read :"+data);
+			File toto = new File("file.txt");
+			FileInputStream test = new FileInputStream(toto);
+			byte [] tablo = new byte[2];
+			while(test.read(tablo) >=0){
+				System.out.println(" tablo : " +tablo[0]+" - "+tablo[1]);
+			}
+			while((data = inputstream.read(filecontent)) >= 0 ){//&& (int)(fileLength/DATAMAXSIZE)>compteur
+
+				System.out.println("nb of read : " + data + " - " + filecontent[0] + " - " + filecontent[1]);
+
 				byte[] cmd_part2 = {CLA, WRITEFILETOCARD, (byte)1, (byte)compteur, DATAMAXSIZE};
+
 				int sizecmd_part = cmd_part2.length;
 				totalLength =sizecmd_part+(int)DATAMAXSIZE;
 				byte[] cmd_5= new byte[totalLength];
+
 				System.arraycopy(cmd_part2, 0, cmd_5, 0, sizecmd_part);
 				System.arraycopy(filecontent, 0, cmd_5, sizecmd_part, (byte)filecontent.length);
+
 				CommandAPDU cmd1 = new CommandAPDU( cmd_5 );
 				this.sendAPDU( cmd1, DISPLAY );
+
 				compteur++;
 
 			}
