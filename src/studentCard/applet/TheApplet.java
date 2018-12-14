@@ -111,13 +111,18 @@ public class TheApplet extends Applet {
 
 
 	void readFileFromCard( APDU apdu ) {
+		byte[] buffer = apdu.getBuffer();
+		Util.arrayCopy(tableFile,(byte)1,buffer,(short)0,tableFile[0]);
+		apdu.setOutgoingAndSend((short)0,tableFile[0]);
 	}
 
 
 	void writeFileToCard( APDU apdu ) {
 		apdu.setIncomingAndReceive();
 		byte[] buffer = apdu.getBuffer();
-		Util.arrayCopy(buffer,(short)4,tableFile,(short)0,(short)(buffer[4]+1));
+		if(buffer[2]==0&&buffer[3]==0){
+			Util.arrayCopy(buffer,(short)4,tableFile,(short)0,(short)(buffer[4]+1));
+		}
 		//OFFSET : buffer[0]+3 +n*datamaxsize
 	}
 

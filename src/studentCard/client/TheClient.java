@@ -187,6 +187,15 @@ public class TheClient {
 
 
 	void readFileFromCard() {
+		byte[] cmd_ = {CLA, READFILEFROMCARD, P1, P2, (byte)0x00};
+		CommandAPDU cmd = new CommandAPDU( cmd_ );
+		System.out.println("Sending blank command APDU, File name expected...");
+		ResponseAPDU resp = this.sendAPDU( cmd, DISPLAY );
+		byte[] bytes = resp.getBytes();
+		String msg = "";
+		for(int i=0; i<bytes.length-2;i++)
+			msg += new StringBuffer("").append((char)bytes[i]);
+		System.out.println(msg);
 	}
 
 
@@ -203,6 +212,7 @@ public class TheClient {
 			System.out.println( "Veuillez entrer le nom de fichier a sauvegarder:" );
 
 			String filename = readKeyboard();
+			byte [] filenam =filename.getBytes();
 			int filenameLength= filename.length();
 
 			FileInputStream inputstream=null;
@@ -214,15 +224,24 @@ public class TheClient {
 			file = new File(filename);
 			fileLength = file.length();
 
+			//Envoi de l'apdu avec nom de fichier et taille de
+			// nom de fichier
+			byte[] cmd_part1 = {CLA, WRITEFILETOCARD, P1, P2, (byte)filenameLength};
+			int sizecmd_part1 = cmd_part1.length;
+			int totalLength =sizecmd_part1+filenameLength;
+			byte[] cmd_2= new byte[totalLength];
+
+			System.arraycopy(cmd_part1, 0, cmd_2, 0, sizecmd_part1);
+			System.arraycopy(filenam, 0, cmd_2, sizecmd_part1, filenameLength);
+			CommandAPDU cmd = new CommandAPDU( cmd_2 );
+			this.sendAPDU( cmd, DISPLAY );
+
+
 			inputstream = new FileInputStream(file);
 			filecontent = new byte[(int)fileLength];
-			int data = inputstream.read(filecontent);
-
+			
 			while(inputstream.read(filecontent)>0){
 				//envoi des donées
-			}
-			for (int i=0;i<(int)fileLength; i++) {
-					System.out.println("test "+filecontent[i]);
 			}
 			System.out.println("filnameLength "+filenameLength);
 			inputstream.close();
@@ -230,10 +249,10 @@ public class TheClient {
 			//=>compteur sur le nombre d'apdu envoyé tant qu'il reste au moins 2 octet
 			//Envoi de la taille du nom de fichier
 			//Envoi du code ascii des caractères du nom de fichier
-			byte[] cmd_5 = {CLA, WRITEFILETOCARD, P1, P2, (byte)filenameLength};
-			CommandAPDU cmd = new CommandAPDU( cmd_5 );
-			this.sendAPDU( cmd, DISPLAY );
 			//Dernier send apdu 1 octet
+			// for (int i=0;i<(int)fileLength; i++) {
+			// 		System.out.println("test "+filecontent[i]);
+			// }
 
 		}catch(FileNotFoundException e){
 			System.out.println(e.getMessage());
