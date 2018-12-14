@@ -47,6 +47,7 @@ public class TheClient {
 	static final byte ENTERWRITEPIN				= (byte)0x03;
 	static final byte READNAMEFROMCARD			= (byte)0x02;
 	static final byte WRITENAMETOCARD			= (byte)0x01;
+	static final byte DATAMAXSIZE = (short)0x02;
 
 
 	public TheClient() {
@@ -68,7 +69,8 @@ public class TheClient {
 			SmartCard.shutdown();
 
 		} catch( Exception e ) {
-			System.out.println( "TheClient error: " + e.getMessage() );
+			// System.out.println( "TheClient error: " + e.StackTrace() );
+			e.printStackTrace();
 		}
 		java.lang.System.exit(0) ;
 	}
@@ -196,11 +198,51 @@ public class TheClient {
 		for(int i=0; i<bytes.length-2;i++)
 			msg += new StringBuffer("").append((char)bytes[i]);
 		System.out.println(msg);
+
+		byte[] cmd_1 = {CLA, READFILEFROMCARD, 1, P2, (byte)0x00};
+		CommandAPDU cmd1 = new CommandAPDU( cmd_1 );
+		System.out.println("Sending blank command APDU, data expected...");
+		ResponseAPDU resp1 = this.sendAPDU( cmd1, DISPLAY );
+		byte[] bytes1 = resp1.getBytes();
+		String msg1 = "";
+		for(int i=0; i<bytes1.length-2;i++)
+			msg1 += new StringBuffer("").append((char)bytes1[i]);
+		System.out.print(msg1);
+
+		byte[] cmd_2 = {CLA, READFILEFROMCARD, 2, P2, (byte)0x00};
+		CommandAPDU cmd2 = new CommandAPDU( cmd_2 );
+		System.out.println("Sending blank command APDU, data expected...");
+		ResponseAPDU resp2 = this.sendAPDU( cmd2, DISPLAY );
+		byte[] bytes2 = resp2.getBytes();
+		String msg2 = "";
+		for(int i=0; i<bytes2.length-2;i++)
+			msg2 += new StringBuffer("").append((char)bytes2[i]);
+		System.out.println("Filename :"+msg+"\nContent : "+msg1+""+msg2);
+		String content = msg1+msg2;
+
+		FileOutputStream fop = null;
+		File file;
+
+		try{
+			file = new File(msg);
+			fop = new FileOutputStream(file);
+
+			if (!file.exists()) {
+				file.createNewFile();
+			}
+
+			byte[] contentInBytes = content.getBytes();
+			fop.write(contentInBytes);
+			fop.flush();
+			fop.close();
+		}catch(IOException e){
+			System.out.println(e.getMessage());
+		}
+
 	}
 
 
 	void writeFileToCard() {
-
 	/*
 	Envoyer :
 	nom du fichier : file => 4 octets
@@ -218,7 +260,6 @@ public class TheClient {
 			FileInputStream inputstream=null;
 
 			File file=null;
-			byte[] filecontent=new byte[2];
 			long fileLength=0;
 
 			file = new File(filename);
@@ -238,12 +279,46 @@ public class TheClient {
 
 
 			inputstream = new FileInputStream(file);
-			filecontent = new byte[(int)fileLength];
-			
-			while(inputstream.read(filecontent)>0){
-				//envoi des donées
+			byte[] filecontent=new byte[DATAMAXSIZE];
+			int compteur=0;
+			int data;
+			while(data=inputstream.read(filecontent)>0&&(int)(fileLength/DATAMAXSIZE)>compteur){
+				System.out.println("nb of read :"+data);
+				byte[] cmd_part2 = {CLA, WRITEFILETOCARD, (byte)1, (byte)compteur, DATAMAXSIZE};
+				int sizecmd_part = cmd_part2.length;
+				totalLength =5+(int)DATAMAXSIZE;
+				byte[] cmd_5= new byte[totalLength];
+				System.arraycopy(cmd_part2, 0, cmd_5, 0, sizecmd_part);
+				System.arraycopy(filecontent, 0, cmd_5, sizecmd_part, (int)DATAMAXSIZE);
+				CommandAPDU cmd1 = new CommandAPDU( cmd_5 );
+				this.sendAPDU( cmd1, DISPLAY );
+				compteur++;
+
 			}
-			System.out.println("filnameLength "+filenameLength);
+			byte left =(byte)(fileLength%(long)DATAMAXSIZE);
+			byte [] contentLeft = new byte[(int)left];
+			byte[] cmd_part = {CLA, WRITEFILETOCARD, (byte)2, (byte)compteur, left};
+			int sizecmd_part = cmd_part.length;
+			if (left==0) {
+					totalLength =6;
+			}
+			else{
+					totalLength =5+(int)left;
+			}
+
+			byte[] cmd_4= new byte[totalLength];
+			System.out.println("Left :"+(int)left);
+
+			System.arraycopy(cmd_part, 0, cmd_4, 0, sizecmd_part1);
+			if (left==0) {
+				filecontent[0]=0;
+				System.arraycopy(filecontent, 0, cmd_4, sizecmd_part1, (byte)1);
+			}
+			else{
+					System.arraycopy(filecontent, 0, cmd_4, sizecmd_part1, (byte)left);
+			}
+			CommandAPDU cmd3 = new CommandAPDU( cmd_4 );
+			this.sendAPDU( cmd3, DISPLAY );
 			inputstream.close();
 			//Boucle sur la comande envoi 2 par 2 des octets jusqu'au dernier
 			//=>compteur sur le nombre d'apdu envoyé tant qu'il reste au moins 2 octet

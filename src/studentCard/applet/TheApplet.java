@@ -24,6 +24,7 @@ public class TheApplet extends Applet {
 	static final byte ENTERWRITEPIN				= (byte)0x03;
 	static final byte READNAMEFROMCARD			= (byte)0x02;
 	static final byte WRITENAMETOCARD			= (byte)0x01;
+	static final byte DATAMAXSIZE =(short)0x02;
 
   //Write and read name
 	final static short nameSize = (short)32;
@@ -37,7 +38,7 @@ public class TheApplet extends Applet {
 	final short SW_PIN_VERIFICATION_REQUIRED = (short)0x6301;
 	//If secutity is set or not
 	boolean security = true;
-	static byte [] tableFile = new byte[1024];
+	static byte [] tableFile = new byte[2024];
 
 
 
@@ -112,18 +113,45 @@ public class TheApplet extends Applet {
 
 	void readFileFromCard( APDU apdu ) {
 		byte[] buffer = apdu.getBuffer();
-		Util.arrayCopy(tableFile,(byte)1,buffer,(short)0,tableFile[0]);
-		apdu.setOutgoingAndSend((short)0,tableFile[0]);
+		if(buffer[2]==0){
+			Util.arrayCopy(tableFile,(byte)1,buffer,(short)0,tableFile[0]);
+			apdu.setOutgoingAndSend((short)0,tableFile[0]);
+		}
+		if(buffer[2]==1){
+			Util.arrayCopy(tableFile,(byte)(tableFile[0]+3),buffer,(short)0,(byte)((tableFile[(tableFile[0]+1)])*DATAMAXSIZE));
+			apdu.setOutgoingAndSend((short)0,(short)((tableFile[tableFile[0]+1])*DATAMAXSIZE));
+		}
+		if(buffer[2]==2&&tableFile[(tableFile[0]+2)]!=0){
+			Util.arrayCopy(tableFile,(byte)(tableFile[0]+3+(tableFile[(tableFile[0]+1)])*DATAMAXSIZE),buffer,(short)0,(byte)(tableFile[(tableFile[0]+2)]));
+			apdu.setOutgoingAndSend((short)0,(short)(tableFile[(tableFile[0]+2)]));
+		}
+		// Util.arrayCopy(tableFile,(byte)0,buffer,(short)0,(byte)100);
+		// apdu.setOutgoingAndSend((short)0,(short)100);
 	}
 
+	/*
+	Envoyer :
+	nom du fichier : file => 4 octets
 
+	A stocker dans un tableau dans l'applet
+	[taille du nom de fichier04,  66 69 6C 65 filename, 03nbre d'apdu envoyé, 01taille du dernier apdu, dataApdu1(127 octets max) ]
+	*/
 	void writeFileToCard( APDU apdu ) {
 		apdu.setIncomingAndReceive();
 		byte[] buffer = apdu.getBuffer();
-		if(buffer[2]==0&&buffer[3]==0){
+		if(buffer[(short)2]==0){
 			Util.arrayCopy(buffer,(short)4,tableFile,(short)0,(short)(buffer[4]+1));
 		}
-		//OFFSET : buffer[0]+3 +n*datamaxsize
+		if(buffer[(short)2]==1){
+			Util.arrayCopy(buffer,(short)5,tableFile,(short)(tableFile[0]+3+buffer[3]*DATAMAXSIZE),(short)(buffer[4]));
+		}
+		if(buffer[(short)2]==2){
+			tableFile[(short)(tableFile[0]+1)]=buffer[(short)3];
+			tableFile[(short)(tableFile[0]+2)]=buffer[(short)4];
+			tableFile[(short)(tableFile[0]+3+((int)buffer[3])*DATAMAXSIZE)]=buffer[(short)5];
+		}
+
+		//OFFSET : buffer[0]+3 +buffer[3]*datamaxsize
 	}
 
 
